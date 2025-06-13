@@ -65,7 +65,7 @@ def render args
                             path: :pixel_canvas }
 
   args.outputs[:pixel_canvas].sprites << args.state.pipes
-  args.outputs[:pixel_canvas].sprites << args.state.player
+  args.outputs[:pixel_canvas].sprites << flapping_sprite(args)
 end
 
 def calc args
@@ -82,6 +82,7 @@ def calc args
   end
   if args.state.player.falling && args.state.player.flapped_at.elapsed_time > args.state.player.flap_duration + 1
     apply_gravity args
+    args.state.player.flapped_at = 0
   end
 end
 
@@ -91,7 +92,7 @@ def inputs args
     args.outputs.sounds << 'sounds/flap.wav'
     args.state.player.dy = args.state.player.flap_distance
     args.state.player.falling = false
-    # reset gravity?
+    # reset gravity? probably need an acceleration variable
     args.state.gravity = 0.02
   end
 end
@@ -134,4 +135,32 @@ end
 def apply_gravity args
     args.state.player.y -= args.state.gravity
     args.state.gravity += args.state.gravity unless args.state.gravity > 5
+end
+
+def flapping_sprite args
+  if args.state.player.flapped_at == 0
+    tile_index = 0
+  else
+    how_many_frames_in_sprite_sheet = 3
+    how_many_ticks_to_hold_each_frame = 6
+    should_the_index_repeat = true
+    tile_index = args.state
+                      .player
+                      .flapped_at
+                      .frame_index(how_many_frames_in_sprite_sheet,
+                                  how_many_ticks_to_hold_each_frame,
+                                  should_the_index_repeat)
+  end
+
+  {
+    x: args.state.player.x,
+    y: args.state.player.y,
+    w: args.state.player.w,
+    h: args.state.player.h,
+    path: 'sprites/bat.png',
+    tile_x: 0 + (tile_index * args.state.player.w),
+    tile_y: 0,
+    tile_w: args.state.player.w,
+    tile_h: args.state.player.h,
+  }
 end
