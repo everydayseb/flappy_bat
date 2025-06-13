@@ -31,7 +31,7 @@ end
 GTK.reset
 
 def defaults args
-  args.state.player ||= { x: 40, y: 160, w: 40, h: 40,
+  args.state.player ||= { x: 50, y: 240, w: 40, h: 40,
                           anchor_x: 0.5, anchor_y: 0.5,
                           path: 'sprites/bat.png',
                           source_x: 0, source_y: 0,
@@ -41,12 +41,25 @@ def defaults args
                           flap_distance: 50,
                           flap_duration: 8,
                           falling: true,
-                          collider: {w: 38, h: 38} }
+                          collider: {w: 28, h: 28}
+                        }
+  args.state.floor ||=  { x: 0, y: 0, w: 180, h: 20,
+                          path: :solid,
+                          r: 20, g: 180, b: 40, a: 255 
+                        }                      
   args.state.gravity ||= 0.02
   args.state.pipes ||= []
+  args.state.game_started ||= false
+  args.state.game_over ||= false
+  args.state.game_over_at ||= 0
+  args.state.score ||= 0
+  args.state.scored_at ||= 0
+  args.state.hiscore ||= 0
 end
 
 def render args
+
+
   # bg color
   args.outputs.background_color = [20, 24, 46]
 
@@ -64,11 +77,53 @@ def render args
                             anchor_x: 0.5, anchor_y: 0.5,
                             path: :pixel_canvas }
 
+  # render ui
+  args.outputs[:pixel_canvas].labels << { x: 90, y: 300, text: "#{args.state.score}",
+                                          anchor_x: 0.5,
+                                          r: 255, g: 255, b: 255,
+                                          font: "fonts/quaver.ttf",
+                                          size_px: 16} if args.state.game_started
+
   args.outputs[:pixel_canvas].sprites << args.state.pipes
   args.outputs[:pixel_canvas].sprites << flapping_sprite(args)
+  args.outputs[:pixel_canvas].sprites << args.state.floor
+  
+  render_title_instructions args
+  render_game_over args
+
+  #args.outputs[:pixel_canvas].debug.borders << args.state.player
 end
 
 def calc args
+
+  unless args.state.game_started
+    # render title 
+    if flap_input? args
+      args.state.game_started = true
+    end
+  end
+
+  return unless args.state.game_started
+
+  if args.state.game_over
+    # let the player fall to the ground but stop everything else
+    if args.state.player.y > args.state.floor.h + args.state.player.collider.h / 2
+      apply_gravity args
+    end
+
+    if args.state.game_over_at.elapsed_time > 30
+      if flap_input? args      
+        args.state.score = 0
+        args.state.pipes.clear
+        args.state.player.y = 240
+        args.state.game_over = false
+        args.state.game_started = false
+      end
+    end
+
+    return
+  end
+
   spawn_pipes args
   move_pipes args
 
@@ -84,25 +139,49 @@ def calc args
     apply_gravity args
     args.state.player.flapped_at = 0
   end
+
+
+  # handle collisions
+  if args.state.player.intersect_rect? args.state.floor
+    args.outputs.sounds << "sounds/collide.wav"
+    args.state.game_over = true
+    args.state.game_over_at = Kernel.tick_count
+  end
+
+  args.state.pipes.each do |pipe| 
+    if pipe.intersect_rect? args.state.player.merge(args.state.player.collider)
+      args.outputs.sounds << "sounds/collide.wav" unless args.state.game_over
+      args.state.game_over = true
+      args.state.game_over_at = Kernel.tick_count
+    end
+  end
+
+  # handle scoring
+  args.state.pipes.each do |pipe|
+    if args.state.player.x > pipe.x + pipe.w / 2 && args.state.scored_at.elapsed_time > 40
+      args.state.scored_at = Kernel.tick_count
+      args.state.score += 1
+      args.outputs.sounds << "sounds/scored.wav"
+    end
+  end
 end
 
 def inputs args
-  if args.inputs.keyboard.key_up.space
+  if flap_input? args
     args.state.player.flapped_at = Kernel.tick_count
-    args.outputs.sounds << 'sounds/flap.wav'
+    args.outputs.sounds << 'sounds/flap.wav' unless args.state.game_over
     args.state.player.dy = args.state.player.flap_distance
     args.state.player.falling = false
     # reset gravity? probably need an acceleration variable
-    args.state.gravity = 0.02
+    args.state.gravity = 0.02 unless args.state.game_over
   end
 end
 
 def spawn_pipes args
-  if args.state.pipes_spawned_at.elapsed_time >= 150
-    gap_height = 30
+  if args.state.pipes_spawned_at.elapsed_time >= 90
     bottom_y = 0 - Numeric.rand(40..200) 
     #top_y = PIXEL_HEIGHT + bottom_y + gap_height
-    top_y = PIXEL_HEIGHT + bottom_y + gap_height
+    top_y = PIXEL_HEIGHT + bottom_y - 5
     top_pipe = pipe(180, top_y, 44, 219, true)
     bottom_pipe = pipe(180, bottom_y, 44, 219, false)
 
@@ -114,7 +193,7 @@ end
 
 def move_pipes args
   args.state.pipes.each do |pipe| 
-    pipe.x = pipe.x.lerp(pipe.x - 2, 0.5)
+    pipe.x = pipe.x.lerp(pipe.x - 4, 0.5)
     #pipe.x -= 1
   end
   
@@ -138,7 +217,7 @@ def apply_gravity args
 end
 
 def flapping_sprite args
-  if args.state.player.flapped_at == 0
+  if args.state.player.flapped_at == 0 || args.state.game_over || !args.state.game_started
     tile_index = 0
   else
     how_many_frames_in_sprite_sheet = 3
@@ -158,9 +237,53 @@ def flapping_sprite args
     w: args.state.player.w,
     h: args.state.player.h,
     path: 'sprites/bat.png',
+    anchor_x: 0.5, anchor_y: 0.5,
     tile_x: 0 + (tile_index * args.state.player.w),
     tile_y: 0,
     tile_w: args.state.player.w,
     tile_h: args.state.player.h,
   }
+end
+
+def flap_input? args
+  args.inputs.keyboard.key_up.space || args.inputs.mouse.click
+end
+
+def render_title_instructions args
+  return if args.state.game_started
+
+  args.outputs[:pixel_canvas].sprites << { x: 90, y: 120, w: 123, h: 88,
+                                            anchor_x: 0.5,
+                                            path: 'sprites/title.png'}
+
+  args.outputs[:pixel_canvas].labels << { x: 90, y: 100,
+                          alignment_enum: 1,
+                          r: 255, g: 255, b: 255, a: 255,
+                          text: "Press SPACE or CLICK MOUSE to start", 
+                          font: 'fonts/quaver.ttf',
+                          size_px: 8,}
+end
+
+def render_game_over args
+  return unless args.state.game_over
+
+  args.outputs[:pixel_canvas].sprites << { x: 20, y: 125, w: 140, h: 40,
+                          r: 0, g: 0, b: 0, a: 220,
+                          path: :solid }
+  args.outputs[:pixel_canvas].labels << { x: 90, y: 195,
+                                          text: "GAME OVER",
+                                          alignment_enum: 1,
+                                          r: 255, g: 255, b: 255,
+                                          font: 'fonts/quaver.ttf',
+                                          size_px: 24}
+  args.outputs[:pixel_canvas].labels << { x: 30, y: 155,
+                                          text: "Score: #{args.state.score}",
+                                          r: 255, g: 255, b: 255,
+                                          font: 'fonts/quaver.ttf',
+                                          size_px: 8}
+  args.outputs[:pixel_canvas].labels << { x: 30, y: 142,
+                                          text: "Best: #{args.state.hiscore}",
+                                          r: 255, g: 255, b: 255,
+                                          font: 'fonts/quaver.ttf',
+                                          size_px: 8}
 end
