@@ -24,6 +24,7 @@ def tick args
 
   defaults args
   render args
+  inputs args
   calc args
 end
 
@@ -34,7 +35,14 @@ def defaults args
                           anchor_x: 0.5, anchor_y: 0.5,
                           path: 'sprites/bat.png',
                           source_x: 0, source_y: 0,
-                          source_w: 40, source_h: 40 }
+                          source_w: 40, source_h: 40,
+                          dy: 0,
+                          flapped_at: 0,
+                          flap_distance: 50,
+                          flap_duration: 8,
+                          falling: true,
+                          collider: {w: 38, h: 38} }
+  args.state.gravity ||= 0.02
   args.state.pipes ||= []
 end
 
@@ -63,6 +71,29 @@ end
 def calc args
   spawn_pipes args
   move_pipes args
+
+  # handle movement
+  if args.state.player.flapped_at.elapsed_time > args.state.player.flap_duration
+    args.state.player.falling = true
+  end
+  if !args.state.player.falling && args.state.player.flapped_at.elapsed_time < args.state.player.flap_duration
+    #args.state.player.y += args.state.player.dy
+    args.state.player.y = args.state.player.y.lerp(args.state.player.y + args.state.player.dy, 0.1)
+  end
+  if args.state.player.falling && args.state.player.flapped_at.elapsed_time > args.state.player.flap_duration + 1
+    apply_gravity args
+  end
+end
+
+def inputs args
+  if args.inputs.keyboard.key_up.space
+    args.state.player.flapped_at = Kernel.tick_count
+    args.outputs.sounds << 'sounds/flap.wav'
+    args.state.player.dy = args.state.player.flap_distance
+    args.state.player.falling = false
+    # reset gravity?
+    args.state.gravity = 0.02
+  end
 end
 
 def spawn_pipes args
@@ -98,4 +129,9 @@ def pipe x, y, w, h, flipped
     path: "sprites/pipe.png",
     flip_vertically: flipped,
   }
+end
+
+def apply_gravity args
+    args.state.player.y -= args.state.gravity
+    args.state.gravity += args.state.gravity unless args.state.gravity > 5
 end
