@@ -30,6 +30,11 @@ end
 GTK.reset
 
 def defaults args
+  args.state.player ||= { x: 40, y: 160, w: 40, h: 40,
+                          anchor_x: 0.5, anchor_y: 0.5,
+                          path: 'sprites/bat.png',
+                          source_x: 0, source_y: 0,
+                          source_w: 40, source_h: 40 }
   args.state.pipes ||= []
 end
 
@@ -52,6 +57,7 @@ def render args
                             path: :pixel_canvas }
 
   args.outputs[:pixel_canvas].sprites << args.state.pipes
+  args.outputs[:pixel_canvas].sprites << args.state.player
 end
 
 def calc args
