@@ -1,7 +1,7 @@
 # Remove the pound sign and leading space for the properties below before publishing your game.
 devid=StopDropPANIC
 devtitle=StopDropPANIC
-gameid=FlappyBat
+gameid=flappy-bat
 gametitle=Flappy Bat
 version=1.0
 icon=metadata/icon.png
