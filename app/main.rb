@@ -278,7 +278,7 @@ def flapping_sprite args
 end
 
 def flap_input? args
-  args.inputs.keyboard.key_up.space || args.inputs.mouse.click
+  args.inputs.keyboard.key_up.space || args.inputs.mouse.click || !args.inputs.finger_one.nil?
 end
 
 def render_title_instructions args
