@@ -133,7 +133,6 @@ def calc args
         args.state.player.y = 240
         args.state.bg.x = 100
         args.state.game_over = false
-        args.state.game_started = false
         args.state.saved_hiscore = false
       end
     end
