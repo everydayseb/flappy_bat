@@ -31,7 +31,7 @@ def tick args
   calc args
 
   #args.gtk.slowmo! 4
-  args.outputs[:pixel_canvas].debug << args.state.player.merge(args.state.player.collider)
+  #args.outputs[:pixel_canvas].debug << args.state.player.merge(args.state.player.collider).merge({path: :solid, a: 128})
 end
 
 GTK.reset
@@ -48,7 +48,7 @@ def defaults args
                           flap_duration: 11.5,
                           falling: true,
                         }
-  args.state.player.collider = {x: args.state.player.x, y: args.state.player.y+1, w: 28, h: 22}
+  args.state.player.collider = {x: args.state.player.x+2, y: args.state.player.y+5, w: 22, h: 18}
   args.state.floor ||=  { x: 0, y: 0, w: 180, h: 20,
                           path: 'sprites/floor.png'
                         }                      
