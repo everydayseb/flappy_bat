@@ -19,6 +19,9 @@ OFFSET_Y = (HEIGHT - PIXEL_HEIGHT * ZOOM) / 2
 ZOOMED_WIDTH = PIXEL_WIDTH * ZOOM
 ZOOMED_HEIGHT = PIXEL_HEIGHT * ZOOM
 
+# HIGH SCORE FILE
+HIGH_SCORE_FILENAME = 'hiscore.txt'
+
 
 def tick args
 
@@ -26,6 +29,9 @@ def tick args
   render args
   inputs args
   calc args
+
+  #args.gtk.slowmo! 4
+  args.outputs[:pixel_canvas].debug << args.state.player.merge(args.state.player.collider)
 end
 
 GTK.reset
@@ -39,22 +45,22 @@ def defaults args
                           dy: 0,
                           flapped_at: 0,
                           flap_distance: 50,
-                          flap_duration: 8,
+                          flap_duration: 11.5,
                           falling: true,
-                          collider: {w: 28, h: 28}
                         }
+  args.state.player.collider = {x: args.state.player.x, y: args.state.player.y+1, w: 28, h: 22}
   args.state.floor ||=  { x: 0, y: 0, w: 180, h: 20,
-                          path: :solid,
-                          r: 20, g: 180, b: 40, a: 255 
+                          path: 'sprites/floor.png'
                         }                      
-  args.state.gravity ||= 0.02
+  args.state.gravity ||= 0.01
   args.state.pipes ||= []
   args.state.game_started ||= false
   args.state.game_over ||= false
   args.state.game_over_at ||= 0
   args.state.score ||= 0
   args.state.scored_at ||= 0
-  args.state.hiscore ||= 0
+  args.state.hiscore ||= args.gtk.read_file(HIGH_SCORE_FILENAME).to_i
+  args.state.saved_hiscore = false
 end
 
 def render args
@@ -111,6 +117,12 @@ def calc args
       apply_gravity args
     end
 
+    if args.state.score > args.state.hiscore && !args.state.saved_hiscore
+      args.state.hiscore = args.state.score
+      args.gtk.write_file(HIGH_SCORE_FILENAME, args.state.score.to_s)
+      args.state.args.state.saved_hiscore = true
+    end
+
     if args.state.game_over_at.elapsed_time > 30
       if flap_input? args      
         args.state.score = 0
@@ -118,6 +130,7 @@ def calc args
         args.state.player.y = 240
         args.state.game_over = false
         args.state.game_started = false
+        args.state.saved_hiscore = false
       end
     end
 
@@ -135,13 +148,14 @@ def calc args
     #args.state.player.y += args.state.player.dy
     args.state.player.y = args.state.player.y.lerp(args.state.player.y + args.state.player.dy, 0.1)
   end
-  if args.state.player.falling && args.state.player.flapped_at.elapsed_time > args.state.player.flap_duration + 1
+  if args.state.player.falling && args.state.player.flapped_at.elapsed_time > args.state.player.flap_duration + 3
     apply_gravity args
     args.state.player.flapped_at = 0
   end
 
 
   # handle collisions
+  #args.state.player.collider.y -= 4
   if args.state.player.intersect_rect? args.state.floor
     args.outputs.sounds << "sounds/collide.wav"
     args.state.game_over = true
@@ -154,6 +168,13 @@ def calc args
       args.state.game_over = true
       args.state.game_over_at = Kernel.tick_count
     end
+  end
+
+  # handle out of bounds
+  if args.state.player.y - args.state.player.h / 2 > PIXEL_HEIGHT
+      args.outputs.sounds << "sounds/collide.wav" unless args.state.game_over
+      args.state.game_over = true
+      args.state.game_over_at = Kernel.tick_count
   end
 
   # handle scoring
@@ -173,16 +194,16 @@ def inputs args
     args.state.player.dy = args.state.player.flap_distance
     args.state.player.falling = false
     # reset gravity? probably need an acceleration variable
-    args.state.gravity = 0.02 unless args.state.game_over
+    args.state.gravity = 0.01 unless args.state.game_over
   end
 end
 
 def spawn_pipes args
-  if args.state.pipes_spawned_at.elapsed_time >= 90
+  if args.state.pipes_spawned_at.elapsed_time >= 60
     bottom_y = Numeric.rand(10..180) * -1
-    top_y = PIXEL_HEIGHT + bottom_y - 5
-    top_pipe = pipe(180, top_y, 44, 219, true)
-    bottom_pipe = pipe(180, bottom_y, 44, 219, false)
+    top_y = PIXEL_HEIGHT + bottom_y - 2
+    top_pipe = pipe(310, top_y, 40, 219, true)
+    bottom_pipe = pipe(310, bottom_y, 40, 219, false)
 
     args.state.pipes << top_pipe
     args.state.pipes << bottom_pipe
@@ -192,7 +213,7 @@ end
 
 def move_pipes args
   args.state.pipes.each do |pipe| 
-    pipe.x = pipe.x.lerp(pipe.x - 4, 0.5)
+    pipe.x = pipe.x.lerp(pipe.x - 6, 0.5)
     #pipe.x -= 1
   end
   
@@ -212,7 +233,7 @@ end
 
 def apply_gravity args
     args.state.player.y -= args.state.gravity
-    args.state.gravity += args.state.gravity unless args.state.gravity > 5
+    args.state.gravity += args.state.gravity unless args.state.gravity > 5.2
 end
 
 def flapping_sprite args
