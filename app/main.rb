@@ -172,9 +172,13 @@ def calc args
 
   # handle out of bounds
   if args.state.player.y - args.state.player.h / 2 > PIXEL_HEIGHT
-      args.outputs.sounds << "sounds/collide.wav" unless args.state.game_over
-      args.state.game_over = true
-      args.state.game_over_at = Kernel.tick_count
+    args.state.pipes.each do |pipe|
+      if args.state.player.x > pipe.x
+        args.outputs.sounds << "sounds/collide.wav" unless args.state.game_over
+        args.state.game_over = true
+        args.state.game_over_at = Kernel.tick_count
+      end 
+    end
   end
 
   # handle scoring
