@@ -179,8 +179,7 @@ end
 
 def spawn_pipes args
   if args.state.pipes_spawned_at.elapsed_time >= 90
-    bottom_y = 0 - Numeric.rand(40..200) 
-    #top_y = PIXEL_HEIGHT + bottom_y + gap_height
+    bottom_y = Numeric.rand(10..180) * -1
     top_y = PIXEL_HEIGHT + bottom_y - 5
     top_pipe = pipe(180, top_y, 44, 219, true)
     bottom_pipe = pipe(180, bottom_y, 44, 219, false)
