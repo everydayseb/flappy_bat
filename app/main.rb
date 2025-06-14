@@ -51,7 +51,8 @@ def defaults args
   args.state.player.collider = {x: args.state.player.x+2, y: args.state.player.y+5, w: 22, h: 18}
   args.state.floor ||=  { x: 0, y: 0, w: 180, h: 20,
                           path: 'sprites/floor.png'
-                        }                      
+                        }
+  args.state.bg ||= {x: 100, y: 0, w: 360, h: 320, path: 'sprites/bg-scroll.png'}
   args.state.gravity ||= 0.01
   args.state.pipes ||= []
   args.state.game_started ||= false
@@ -89,6 +90,8 @@ def render args
                                           r: 255, g: 255, b: 255,
                                           font: "fonts/quaver.ttf",
                                           size_px: 16} if args.state.game_started
+
+  args.outputs[:pixel_canvas].sprites << args.state.bg
 
   args.outputs[:pixel_canvas].sprites << args.state.pipes
   args.outputs[:pixel_canvas].sprites << flapping_sprite(args)
@@ -128,6 +131,7 @@ def calc args
         args.state.score = 0
         args.state.pipes.clear
         args.state.player.y = 240
+        args.state.bg.x = 100
         args.state.game_over = false
         args.state.game_started = false
         args.state.saved_hiscore = false
@@ -139,6 +143,7 @@ def calc args
 
   spawn_pipes args
   move_pipes args
+  move_bg args
 
   # handle movement
   if args.state.player.flapped_at.elapsed_time > args.state.player.flap_duration
@@ -222,6 +227,10 @@ def move_pipes args
   end
   
   args.state.pipes.reject! {|pipe| pipe.x < 0 - pipe.w}
+end
+
+def move_bg args
+  args.state.bg.x = args.state.bg.x.lerp(args.state.bg.x - 1, 0.2)
 end
 
 def pipe x, y, w, h, flipped
