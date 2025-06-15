@@ -3,7 +3,7 @@ devid=StopDropPANIC
 devtitle=StopDropPANIC
 gameid=flappy-bat
 gametitle=Flappy Bat
-version=1.0
+version=1.2
 icon=metadata/icon.png
 
 # === Flags available at all licensing tiers ===

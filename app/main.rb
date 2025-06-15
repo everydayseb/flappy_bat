@@ -45,7 +45,7 @@ def defaults args
                           dy: 0,
                           flapped_at: 0,
                           flap_distance: 50,
-                          flap_duration: 11.5,
+                          flap_duration: 10,
                           falling: true,
                         }
   args.state.player.collider = {x: args.state.player.x+2, y: args.state.player.y+5, w: 22, h: 18}
@@ -152,7 +152,7 @@ def calc args
     #args.state.player.y += args.state.player.dy
     args.state.player.y = args.state.player.y.lerp(args.state.player.y + args.state.player.dy, 0.1)
   end
-  if args.state.player.falling && args.state.player.flapped_at.elapsed_time > args.state.player.flap_duration + 3
+  if args.state.player.falling && args.state.player.flapped_at.elapsed_time > args.state.player.flap_duration + 4
     apply_gravity args
     args.state.player.flapped_at = 0
   end
@@ -207,11 +207,11 @@ def inputs args
 end
 
 def spawn_pipes args
-  if args.state.pipes_spawned_at.elapsed_time >= 60
-    bottom_y = Numeric.rand(10..180) * -1
-    top_y = PIXEL_HEIGHT + bottom_y - 2
-    top_pipe = pipe(310, top_y, 40, 219, true)
-    bottom_pipe = pipe(310, bottom_y, 40, 219, false)
+  if args.state.pipes_spawned_at.elapsed_time >= 90
+    bottom_y = Numeric.rand(25..180) * -1
+    top_y = PIXEL_HEIGHT + bottom_y + 8
+    top_pipe = pipe(200, top_y, 36, 219, true)
+    bottom_pipe = pipe(200, bottom_y, 36, 219, false)
 
     args.state.pipes << top_pipe
     args.state.pipes << bottom_pipe
@@ -221,8 +221,7 @@ end
 
 def move_pipes args
   args.state.pipes.each do |pipe| 
-    pipe.x = pipe.x.lerp(pipe.x - 6, 0.5)
-    #pipe.x -= 1
+    pipe.x = pipe.x.lerp(pipe.x - 4, 0.5)
   end
   
   args.state.pipes.reject! {|pipe| pipe.x < 0 - pipe.w}
@@ -245,7 +244,7 @@ end
 
 def apply_gravity args
     args.state.player.y -= args.state.gravity
-    args.state.gravity += args.state.gravity unless args.state.gravity > 5.2
+    args.state.gravity += args.state.gravity unless args.state.gravity > 5.25
 end
 
 def flapping_sprite args
